@@ -1,0 +1,307 @@
+{% extends "base.html" %}
+{% set active_page = 'stock' %}
+{% block title %}Stock — Clinixis{% endblock %}
+{% block content %}
+<div class="page">
+  <div style="padding:14px 0 12px;display:flex;align-items:center;justify-content:space-between;">
+    <div>
+      <div style="font-size:13px;color:var(--text-muted);">FIFO batch inventory</div>
+      <div style="font-size:20px;font-weight:700;">Stock</div>
+    </div>
+    <button class="btn btn-primary btn-sm" onclick="openModal('add-product-modal')">
+      <i class="fa-solid fa-plus"></i> Add Item
+    </button>
+  </div>
+
+  <div class="form-group">
+    <input class="form-control" type="text" id="stock-search" placeholder="Search items..." oninput="filterStock(this.value)">
+  </div>
+
+  <div class="pill-tabs">
+    <button class="pill-tab active" onclick="setFilter('all',this)">All</button>
+    <button class="pill-tab" onclick="setFilter('low',this)">Low Stock</button>
+    <button class="pill-tab" onclick="setFilter('out',this)">Out of Stock</button>
+    <button class="pill-tab" onclick="setFilter('expiring',this)">Expiring Soon</button>
+  </div>
+
+  <div id="stock-list">
+    {% for p in products %}
+    <div class="card product-card" style="margin-bottom:10px;"
+         data-name="{{ p.name.lower() }}"
+         data-qty="{{ p.quantity }}"
+         data-alert="{{ p.low_stock_alert }}"
+         data-expiry="{{ p.nearest_expiry or '' }}">
+
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;">
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:15px;font-weight:700;margin-bottom:2px;">{{ p.name }}</div>
+          <div style="font-size:12px;color:var(--text-muted);">
+            {{ p.category }} &middot; {{ p.unit }} &middot;
+            Sell: &#8358;{{ "{:,.0f}".format(p.selling_price) }}
+            {% if p.supplier %}&middot; {{ p.supplier }}{% endif %}
+          </div>
+          {% if p.nearest_expiry %}
+          <div style="font-size:12px;margin-top:3px;" id="expiry-{{ p.id }}">
+            <i class="fa-solid fa-calendar-days" style="font-size:11px;"></i>
+            Nearest expiry: {{ p.nearest_expiry }}
+          </div>
+          {% endif %}
+        </div>
+        <span class="badge {% if p.quantity == 0 %}badge-red{% elif p.is_low %}badge-orange{% else %}badge-green{% endif %}">
+          {% if p.quantity == 0 %}Out{% else %}{{ p.quantity }} left{% endif %}
+        </span>
+      </div>
+
+      <!-- Batch breakdown -->
+      {% if p.batches %}
+      <div style="margin-top:10px;border-top:1px solid var(--border);padding-top:8px;">
+        <div style="font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">
+          <i class="fa-solid fa-layer-group" style="font-size:10px;"></i> Batches (FIFO order)
+        </div>
+        {% for batch in p.batches %}
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:4px 0;border-bottom:1px dashed var(--border);font-size:12px;">
+          <div>
+            <span style="font-weight:600;color:var(--text);">{{ batch.batch_number }}</span>
+            {% if batch.expiry_date %}
+            <span style="color:var(--text-muted);margin-left:6px;">exp {{ batch.expiry_date }}</span>
+            {% endif %}
+          </div>
+          <div style="display:flex;align-items:center;gap:10px;">
+            <span style="color:var(--text-muted);">cost &#8358;{{ "{:,.0f}".format(batch.cost_price) }}</span>
+            <span class="badge {% if batch.quantity_remaining == 0 %}badge-red{% else %}badge-blue{% endif %}">
+              {{ batch.quantity_remaining }} / {{ batch.quantity_received }}
+            </span>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+      {% endif %}
+
+      <div style="display:flex;gap:8px;margin-top:10px;">
+        <button class="btn btn-secondary btn-sm" style="flex:1;"
+                onclick="openAddBatch({{ p.id }},'{{ p.name }}')">
+          <i class="fa-solid fa-arrow-up"></i> New Batch
+        </button>
+        {% if session.role == 'owner' %}
+        <button class="btn btn-secondary btn-sm" style="flex:1;"
+                onclick="openEdit({{ p.id }},'{{ p.name }}','{{ p.category }}','{{ p.unit }}',{{ p.selling_price }},{{ p.low_stock_alert }},'{{ p.supplier or '' }}')">
+          <i class="fa-solid fa-pen"></i> Edit
+        </button>
+        {% endif %}
+      </div>
+    </div>
+    {% else %}
+    <div style="text-align:center;padding:40px 16px;color:var(--text-muted);">
+      <i class="fa-solid fa-boxes-stacked" style="font-size:40px;margin-bottom:12px;display:block;opacity:0.3;"></i>
+      No items yet. Add your first product.
+    </div>
+    {% endfor %}
+  </div>
+</div>
+
+<!-- Add Product Modal -->
+<div class="modal-overlay" id="add-product-modal" onclick="if(event.target===this)closeModal('add-product-modal')">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">Add New Item</div>
+    <form method="POST" action="/stock/add">
+      <div class="form-group">
+        <label class="form-label">Item name</label>
+        <input class="form-control" type="text" name="name" placeholder="e.g. Paracetamol 500mg" required>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Category</label>
+          <select class="form-control" name="category">
+            <option>Analgesic</option><option>Antibiotic</option><option>Antimalarial</option>
+            <option>Supplement</option><option>Hydration</option><option>Equipment</option>
+            <option>Consumable</option><option>Diagnostic</option><option>General</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Unit</label>
+          <select class="form-control" name="unit">
+            <option>piece</option><option>pack</option><option>bottle</option>
+            <option>sachet</option><option>tablet</option><option>unit</option>
+            <option>box</option><option>vial</option><option>tube</option><option>set</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Cost price (&#8358;)</label>
+          <input class="form-control" type="number" name="cost_price" placeholder="0" min="0" step="0.01">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Selling price (&#8358;)</label>
+          <input class="form-control" type="number" name="selling_price" placeholder="0" min="0" step="0.01" required>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Opening quantity</label>
+          <input class="form-control" type="number" name="quantity" placeholder="0" min="0">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Low stock alert</label>
+          <input class="form-control" type="number" name="low_stock_alert" value="10" min="1">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Expiry date</label>
+          <input class="form-control" type="date" name="expiry_date">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Supplier</label>
+          <input class="form-control" type="text" name="supplier" placeholder="Supplier name">
+        </div>
+      </div>
+      <button class="btn btn-primary btn-full" type="submit">Add Item</button>
+      <button type="button" class="btn btn-secondary btn-full" style="margin-top:8px;" onclick="closeModal('add-product-modal')">Cancel</button>
+    </form>
+  </div>
+</div>
+
+<!-- Add Batch Modal -->
+<div class="modal-overlay" id="add-batch-modal" onclick="if(event.target===this)closeModal('add-batch-modal')">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">New Batch: <span id="batch-product-name"></span></div>
+    <input type="hidden" id="batch-product-id">
+    <div class="alert alert-info" style="font-size:13px;">
+      <i class="fa-solid fa-layer-group"></i>
+      Each delivery is a separate batch. Sales will automatically use the earliest-expiring batch first (FIFO).
+    </div>
+    <div class="form-group">
+      <label class="form-label">Quantity received</label>
+      <input class="form-control" type="number" id="batch-qty" placeholder="e.g. 50" min="1" required>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Cost price (&#8358;)</label>
+        <input class="form-control" type="number" id="batch-cost" placeholder="0" min="0" step="0.01">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Expiry date</label>
+        <input class="form-control" type="date" id="batch-expiry">
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Batch number (optional)</label>
+      <input class="form-control" type="text" id="batch-number" placeholder="Auto-generated if blank">
+    </div>
+    <button class="btn btn-primary btn-full" onclick="confirmAddBatch()">Add Batch</button>
+    <button class="btn btn-secondary btn-full" style="margin-top:8px;" onclick="closeModal('add-batch-modal')">Cancel</button>
+  </div>
+</div>
+
+<!-- Edit Modal -->
+<div class="modal-overlay" id="edit-modal" onclick="if(event.target===this)closeModal('edit-modal')">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">Edit Product</div>
+    <input type="hidden" id="edit-id">
+    <div class="form-group">
+      <label class="form-label">Item name</label>
+      <input class="form-control" type="text" id="edit-name">
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Selling price (&#8358;)</label>
+        <input class="form-control" type="number" id="edit-sell" min="0" step="0.01">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Low stock alert</label>
+        <input class="form-control" type="number" id="edit-alert" min="1">
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Supplier</label>
+      <input class="form-control" type="text" id="edit-supplier">
+    </div>
+    <button class="btn btn-primary btn-full" onclick="confirmEdit()">Save Changes</button>
+    <button class="btn btn-secondary btn-full" style="margin-top:8px;" onclick="closeModal('edit-modal')">Cancel</button>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const today = new Date().toISOString().split('T')[0];
+const soon = new Date(Date.now()+30*86400000).toISOString().split('T')[0];
+
+function filterStock(q) {
+  document.querySelectorAll('.product-card').forEach(c=>{
+    c.style.display=c.dataset.name.includes(q.toLowerCase())?'':'none';
+  });
+}
+function setFilter(type,btn) {
+  document.querySelectorAll('.pill-tab').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('stock-search').value='';
+  document.querySelectorAll('.product-card').forEach(c=>{
+    const qty=parseInt(c.dataset.qty),alert=parseInt(c.dataset.alert),exp=c.dataset.expiry;
+    if(type==='all') c.style.display='';
+    else if(type==='low') c.style.display=(qty>0&&qty<=alert)?'':'none';
+    else if(type==='out') c.style.display=qty===0?'':'none';
+    else if(type==='expiring') c.style.display=(exp&&exp<=soon&&exp>=today)?'':'none';
+  });
+}
+
+function openAddBatch(id,name) {
+  document.getElementById('batch-product-id').value=id;
+  document.getElementById('batch-product-name').textContent=name;
+  document.getElementById('batch-qty').value='';
+  document.getElementById('batch-cost').value='';
+  document.getElementById('batch-expiry').value='';
+  document.getElementById('batch-number').value='';
+  openModal('add-batch-modal');
+}
+async function confirmAddBatch() {
+  const qty=parseInt(document.getElementById('batch-qty').value);
+  if(!qty||qty<1){showToast('Enter a valid quantity');return;}
+  const res=await fetch('/stock/add-batch',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
+    product_id:document.getElementById('batch-product-id').value,
+    quantity:qty,
+    cost_price:parseFloat(document.getElementById('batch-cost').value)||0,
+    expiry_date:document.getElementById('batch-expiry').value||null,
+    batch_number:document.getElementById('batch-number').value||null,
+  })});
+  const data=await res.json();
+  if(data.success){closeModal('add-batch-modal');showToast('Batch added');setTimeout(()=>location.reload(),1000);}
+  else showToast('Error: '+data.message);
+}
+
+function openEdit(id,name,cat,unit,sell,alert,supplier) {
+  document.getElementById('edit-id').value=id;
+  document.getElementById('edit-name').value=name;
+  document.getElementById('edit-sell').value=sell;
+  document.getElementById('edit-alert').value=alert;
+  document.getElementById('edit-supplier').value=supplier||'';
+  openModal('edit-modal');
+}
+async function confirmEdit() {
+  const res=await fetch('/stock/edit',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
+    product_id:document.getElementById('edit-id').value,
+    name:document.getElementById('edit-name').value,
+    selling_price:parseFloat(document.getElementById('edit-sell').value),
+    low_stock_alert:parseInt(document.getElementById('edit-alert').value),
+    supplier:document.getElementById('edit-supplier').value,
+  })});
+  const data=await res.json();
+  if(data.success){closeModal('edit-modal');showToast('Updated');setTimeout(()=>location.reload(),1000);}
+  else showToast('Error updating');
+}
+
+// Colour expiry dates
+document.querySelectorAll('[id^="expiry-"]').forEach(el=>{
+  const exp=el.textContent.match(/\d{4}-\d{2}-\d{2}/);
+  if(!exp) return;
+  const days=Math.floor((new Date(exp[0])-new Date())/(1000*60*60*24));
+  if(days<0) el.style.color='var(--danger)';
+  else if(days<=30) el.style.color='var(--warning)';
+  else el.style.color='var(--green)';
+});
+</script>
+{% endblock %}

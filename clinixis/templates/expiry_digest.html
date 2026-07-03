@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Clinixis — Expiry Digest</title>
+<style>
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f0f4f8; margin: 0; padding: 20px; }
+  .container { max-width: 600px; margin: 0 auto; background: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 12px rgba(0,0,0,0.08); }
+  .header { background: #0f4f8a; padding: 28px 28px 20px; }
+  .header-logo { font-size: 24px; font-weight: 800; color: white; letter-spacing: -0.5px; margin-bottom: 4px; }
+  .header-logo span { color: #64b5f6; }
+  .header-title { color: rgba(255,255,255,0.85); font-size: 14px; }
+  .body { padding: 24px 28px; }
+  .summary-box { background: #fff3cd; border: 1px solid #ffc107; border-radius: 8px; padding: 14px 16px; margin-bottom: 20px; }
+  .summary-title { font-size: 13px; font-weight: 700; color: #856404; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.5px; }
+  .summary-amount { font-size: 28px; font-weight: 800; color: #856404; }
+  .summary-sub { font-size: 12px; color: #856404; margin-top: 2px; }
+  table { width: 100%; border-collapse: collapse; margin-top: 4px; }
+  th { background: #f0f4f8; padding: 8px 12px; font-size: 11px; font-weight: 700; color: #6b7280; text-align: left; text-transform: uppercase; letter-spacing: 0.5px; }
+  td { padding: 10px 12px; font-size: 13px; border-bottom: 1px solid #e2e8f0; vertical-align: middle; }
+  .days-critical { color: #c0392b; font-weight: 700; }
+  .days-warn { color: #e67e22; font-weight: 600; }
+  .days-ok { color: #1a8a5a; }
+  .risk { font-weight: 700; color: #0f4f8a; }
+  .footer { background: #f0f4f8; padding: 16px 28px; font-size: 12px; color: #6b7280; border-top: 1px solid #e2e8f0; }
+  .no-items { text-align: center; padding: 32px; color: #6b7280; font-size: 14px; }
+  .preview-bar { background: #1a6fb5; color: white; padding: 10px 16px; font-size: 13px; font-weight: 600; display: flex; align-items: center; justify-content: space-between; }
+  .preview-bar a { color: rgba(255,255,255,0.8); font-size: 12px; text-decoration: none; }
+</style>
+</head>
+<body>
+{% if preview %}
+<div class="preview-bar">
+  <span>Preview — Weekly Expiry Digest</span>
+  <a href="/reports">Back to Reports</a>
+</div>
+{% endif %}
+
+<div class="container">
+  <div class="header">
+    <div class="header-logo">Clini<span>xis</span></div>
+    <div class="header-title">
+      Weekly Expiry Risk Digest &mdash; {{ digest.pharmacy.name }}<br>
+      Generated {{ now if now else '' }} &mdash; Items expiring within 30 days
+    </div>
+  </div>
+
+  <div class="body">
+    {% if digest.items %}
+    <div class="summary-box">
+      <div class="summary-title">Total Financial Risk Exposure</div>
+      <div class="summary-amount">&#8358;{{ "{:,.0f}".format(digest.total_risk) }}</div>
+      <div class="summary-sub">{{ digest.items|length }} batch{{ 'es' if digest.items|length != 1 }} at risk &mdash; stock value that may expire unsold</div>
+    </div>
+
+    <table>
+      <thead>
+        <tr>
+          <th>Product</th>
+          <th>Batch</th>
+          <th>Expiry</th>
+          <th>Days Left</th>
+          <th>Qty</th>
+          <th>Risk (&#8358;)</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for item in digest.items %}
+        <tr>
+          <td><strong>{{ item.product_name }}</strong><br><span style="font-size:11px;color:#6b7280;">{{ item.category }}</span></td>
+          <td style="font-size:12px;color:#6b7280;">{{ item.batch_number }}</td>
+          <td style="font-size:13px;">{{ item.expiry_date }}</td>
+          <td class="{% if item.days_left <= 7 %}days-critical{% elif item.days_left <= 14 %}days-warn{% else %}days-ok{% endif %}">
+            {{ item.days_left }}d
+          </td>
+          <td>{{ item.quantity_remaining }}</td>
+          <td class="risk">&#8358;{{ "{:,.0f}".format(item.risk_exposure) }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+
+    <div style="margin-top:16px;padding:12px;background:#e8f2fb;border-radius:8px;font-size:13px;color:#0f4f8a;">
+      <strong>Recommended action:</strong> Review items with &le;7 days remaining immediately.
+      Consider running promotions or returning stock to supplier where possible.
+    </div>
+
+    {% else %}
+    <div class="no-items">
+      No items expiring within the next 30 days. Stock is healthy.
+    </div>
+    {% endif %}
+  </div>
+
+  <div class="footer">
+    This digest is generated automatically by Clinixis every week.
+    Log in to your dashboard to manage expiring stock.
+  </div>
+</div>
+</body>
+</html>

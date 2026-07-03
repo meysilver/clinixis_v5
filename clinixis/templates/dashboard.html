@@ -1,0 +1,329 @@
+{% extends "base.html" %}
+{% set active_page = 'dashboard' %}
+{% block title %}Dashboard — Clinixis{% endblock %}
+{% block content %}
+<div class="page">
+
+  <!-- Header -->
+  <div class="page-header" style="padding-top:8px;display:flex;align-items:center;justify-content:space-between;">
+    <div>
+      <div class="page-label">{% if hour < 12 %}Good morning{% elif hour < 17 %}Good afternoon{% else %}Good evening{% endif %}</div>
+      <div class="page-title">{{ session.display_name.split()[0] }} 👋</div>
+    </div>
+    <div style="font-size:12px;color:var(--text-muted);text-align:right;">
+      <div style="font-weight:600;color:var(--text);">{{ session.pharmacy_name }}</div>
+      <div>{{ session.role | capitalize }}</div>
+    </div>
+  </div>
+
+  <!-- Today + Month -->
+  <div class="metrics-grid">
+    <div class="metric-card blue">
+      <div class="metric-icon blue"><i class="fa-solid fa-naira-sign"></i></div>
+      <div class="metric-label">Today's Sales</div>
+      <div class="metric-value" data-count="{{ data.today_sales }}" data-prefix="₦">₦0</div>
+      <div class="metric-sub">{{ data.today_transactions }} transaction{{ 's' if data.today_transactions != 1 }}</div>
+      {% if insights.day_change != 0 %}
+      <div class="metric-trend {{ 'up' if insights.day_change > 0 else 'down' }}">
+        <i class="fa-solid fa-arrow-{{ 'up' if insights.day_change > 0 else 'down' }}"></i>
+        {{ insights.day_change|abs }}% vs yesterday
+      </div>
+      {% endif %}
+    </div>
+    <div class="metric-card teal">
+      <div class="metric-icon teal"><i class="fa-solid fa-calendar-check"></i></div>
+      <div class="metric-label">This Month</div>
+      <div class="metric-value" style="font-size:20px;" data-count="{{ data.month_sales }}" data-prefix="₦">₦0</div>
+      <div class="metric-sub">Total revenue</div>
+      {% if insights.week_change != 0 %}
+      <div class="metric-trend {{ 'up' if insights.week_change > 0 else 'down' }}">
+        <i class="fa-solid fa-arrow-{{ 'up' if insights.week_change > 0 else 'down' }}"></i>
+        {{ insights.week_change|abs }}% this week
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+  {% if session.role == 'owner' %}
+  <div class="metrics-grid">
+    <div class="metric-card {{ 'green' if data.month_profit >= 0 else 'red' }}">
+      <div class="metric-icon {{ 'green' if data.month_profit >= 0 else 'red' }}">
+        <i class="fa-solid fa-{{ 'arrow-trend-up' if data.month_profit >= 0 else 'arrow-trend-down' }}"></i>
+      </div>
+      <div class="metric-label">Net Profit</div>
+      <div class="metric-value" style="font-size:20px;color:var(--{{ 'green' if data.month_profit >= 0 else 'red' }});"
+           data-count="{{ data.month_profit|abs }}" data-prefix="{{ '' if data.month_profit >= 0 else '-' }}₦">₦0</div>
+      <div class="metric-sub">Revenue minus expenses</div>
+    </div>
+    <div class="metric-card amber">
+      <div class="metric-icon amber"><i class="fa-solid fa-receipt"></i></div>
+      <div class="metric-label">Avg Sale Value</div>
+      <div class="metric-value" style="font-size:20px;" data-count="{{ insights.avg_tx }}" data-prefix="₦">₦0</div>
+      <div class="metric-sub">Per transaction (30d)</div>
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- Actionable Alerts -->
+  {% if data.expiring %}
+  <div class="card" style="margin-bottom:12px;border-left:3px solid var(--red);">
+    <div class="card-header" style="margin-bottom:10px;">
+      <div style="display:flex;align-items:center;gap:8px;">
+        <i class="fa-solid fa-triangle-exclamation" style="color:var(--red);"></i>
+        <div class="card-title" style="color:var(--red);">{{ data.expiring_count }} Batch{{ 'es' if data.expiring_count != 1 }} Expiring Soon</div>
+      </div>
+    </div>
+    {% for p in data.expiring %}
+    <div class="item-row">
+      <div>
+        <div class="item-name">{{ p.product_name }}</div>
+        <div class="item-sub">Batch {{ p.batch_number }} · {{ p.quantity_remaining }} units · exp {{ p.expiry_date }}</div>
+      </div>
+      <a href="/stock" class="btn btn-xs btn-danger">View</a>
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  {% if data.low_stock %}
+  <div class="card" style="margin-bottom:12px;border-left:3px solid var(--amber);">
+    <div class="card-header" style="margin-bottom:10px;">
+      <div style="display:flex;align-items:center;gap:8px;">
+        <i class="fa-solid fa-box-open" style="color:var(--amber);"></i>
+        <div class="card-title" style="color:var(--amber);">{{ data.low_stock_count }} Product{{ 's' if data.low_stock_count != 1 }} Need Restocking</div>
+      </div>
+    </div>
+    {% for p in data.low_stock %}
+    <div class="item-row">
+      <div>
+        <div class="item-name">{{ p.name }}</div>
+        <div class="item-sub">{{ p.quantity }} left · alert at {{ p.low_stock_alert }}</div>
+      </div>
+      <a href="/stock" class="btn btn-xs btn-secondary">Restock</a>
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  <!-- Health Tip -->
+  <div style="background:linear-gradient(135deg,#e3f0fd,#e0f2f1);border:1px solid #bbdefb;border-radius:var(--radius);padding:16px;margin-bottom:12px;display:flex;gap:12px;align-items:flex-start;">
+    <div style="width:36px;height:36px;border-radius:10px;background:white;display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:var(--shadow-sm);">
+      <i class="fa-solid {{ tip.icon }}" style="color:{{ tip.color }};font-size:16px;"></i>
+    </div>
+    <div>
+      <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:var(--primary);margin-bottom:4px;">Health Insight</div>
+      <div style="font-size:13px;color:var(--text-secondary);line-height:1.6;">{{ tip.tip }}</div>
+    </div>
+  </div>
+
+  <!-- Sales Chart -->
+  <div class="card" style="margin-bottom:12px;">
+    <div class="card-header">
+      <div class="card-title">Sales — Last 14 Days</div>
+      {% if insights.best_day %}
+      <span class="badge badge-teal"><i class="fa-solid fa-fire"></i> {{ insights.best_day }}s</span>
+      {% endif %}
+    </div>
+    <canvas id="salesChart" style="width:100%;height:155px;"></canvas>
+  </div>
+
+  <!-- Stock Velocity -->
+  {% set active_velocity = velocity | selectattr('daily_rate', 'gt', 0) | list %}
+  {% if active_velocity %}
+  <div class="card" style="margin-bottom:12px;">
+    <div class="card-header">
+      <div class="card-title"><i class="fa-solid fa-gauge-high" style="color:var(--primary);margin-right:6px;font-size:12px;"></i>Stock Velocity</div>
+      <span class="badge badge-blue">30-day rate</span>
+    </div>
+    {% for p in active_velocity[:5] %}
+    <div style="margin-bottom:13px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:3px;">
+        <div style="font-size:13px;font-weight:600;color:var(--text);">{{ p.name }}</div>
+        <span class="badge {{ 'badge-red' if p.has_velocity and p.days_until_stockout <= 3 else 'badge-amber' if p.has_velocity and p.days_until_stockout <= 7 else 'badge-green' }}">
+          {% if p.quantity == 0 %}Out of stock
+          {% elif p.has_velocity and p.days_until_stockout <= 9998 %}{{ p.days_until_stockout }}d left
+          {% else %}Slow mover{% endif %}
+        </span>
+      </div>
+      <div style="font-size:11px;color:var(--text-muted);margin-bottom:5px;">
+        {{ p.daily_rate }} units/day · {{ p.quantity }} in stock
+        {% if p.needs_restock %}<strong style="color:var(--red);"> · Reorder now</strong>{% endif %}
+      </div>
+      <div class="velocity-bar">
+        <div class="velocity-fill {{ 'danger' if p.days_until_stockout <= 3 else 'warn' if p.days_until_stockout <= 7 else 'safe' }}"
+             style="width:{{ [[((p.days_until_stockout if p.has_velocity else 30) / 30 * 100)|round, 0]|max, 100]|min }}%"></div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  <!-- Clinixis Insights -->
+  <div class="card" style="margin-bottom:12px;">
+    <div class="card-header">
+      <div class="card-title"><i class="fa-solid fa-robot" style="color:var(--primary);margin-right:6px;font-size:12px;"></i>Clinixis Insights</div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:10px;">
+      {% if insights.best_day %}
+      <div style="display:flex;gap:10px;align-items:flex-start;">
+        <div style="width:8px;height:8px;border-radius:50%;background:var(--teal);margin-top:5px;flex-shrink:0;"></div>
+        <div style="font-size:13px;color:var(--text-secondary);">Your busiest sales day is <strong>{{ insights.best_day }}</strong> — ensure adequate stock and staffing on that day.</div>
+      </div>
+      {% endif %}
+      {% set critical = velocity | selectattr('has_velocity') | selectattr('days_until_stockout', 'le', 3) | list %}
+      {% if critical %}
+      <div style="display:flex;gap:10px;align-items:flex-start;">
+        <div style="width:8px;height:8px;border-radius:50%;background:var(--red);margin-top:5px;flex-shrink:0;"></div>
+        <div style="font-size:13px;color:var(--text-secondary);"><strong>{{ critical|length }} product{{ 's' if critical|length != 1 }}</strong> will run out within 3 days: {{ critical[:3]|map(attribute='name')|join(', ') }}.</div>
+      </div>
+      {% endif %}
+      {% if session.role == 'owner' %}
+      {% if data.month_profit > 0 %}
+      <div style="display:flex;gap:10px;align-items:flex-start;">
+        <div style="width:8px;height:8px;border-radius:50%;background:var(--green);margin-top:5px;flex-shrink:0;"></div>
+        <div style="font-size:13px;color:var(--text-secondary);">Business is profitable this month with a net margin of <strong>₦{{ "{:,.0f}".format(data.month_profit) }}</strong> after expenses.</div>
+      </div>
+      {% endif %}
+      {% set low_margin = velocity | selectattr('low_margin') | list %}
+      {% if low_margin %}
+      <div style="display:flex;gap:10px;align-items:flex-start;">
+        <div style="width:8px;height:8px;border-radius:50%;background:var(--amber);margin-top:5px;flex-shrink:0;"></div>
+        <div style="font-size:13px;color:var(--text-secondary);"><strong>{{ low_margin|length }} product{{ 's' if low_margin|length != 1 }}</strong> {{ 'have' if low_margin|length != 1 else 'has' }} a profit margin below 20%. Consider reviewing selling prices.</div>
+      </div>
+      {% endif %}
+      {% endif %}
+      {% if insights.avg_tx > 0 %}
+      <div style="display:flex;gap:10px;align-items:flex-start;">
+        <div style="width:8px;height:8px;border-radius:50%;background:var(--primary);margin-top:5px;flex-shrink:0;"></div>
+        <div style="font-size:13px;color:var(--text-secondary);">Average transaction value is <strong>₦{{ "{:,.0f}".format(insights.avg_tx) }}</strong> over the last 30 days.</div>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Top Sellers -->
+  {% if data.top_products %}
+  <div class="card" style="margin-bottom:12px;">
+    <div class="card-header">
+      <div class="card-title">Top Sellers</div>
+      <span class="card-subtitle">All time</span>
+    </div>
+    {% for p in data.top_products %}
+    <div class="item-row">
+      <div style="display:flex;align-items:center;gap:10px;">
+        <div style="width:28px;height:28px;border-radius:8px;background:var(--primary-light);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;color:var(--primary);flex-shrink:0;">
+          {{ loop.index }}
+        </div>
+        <div>
+          <div class="item-name">{{ p.name }}</div>
+          <div class="item-sub">{{ p.units or 0 }} units sold</div>
+        </div>
+      </div>
+      <div class="item-amount">₦{{ "{:,.0f}".format(p.revenue or 0) }}</div>
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  <!-- Recent Activity Feed -->
+  {% if activity %}
+  <div class="card" style="margin-bottom:12px;">
+    <div class="card-header">
+      <div class="card-title"><i class="fa-solid fa-clock-rotate-left" style="color:var(--primary);margin-right:6px;font-size:12px;"></i>Recent Activity</div>
+    </div>
+    {% for a in activity[:8] %}
+    <div class="item-row">
+      <div style="display:flex;align-items:center;gap:10px;">
+        <div style="width:34px;height:34px;border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0;
+          background:{{ 'var(--primary-light)' if a.type=='sale' else 'var(--red-light)' if a.type=='expense' else 'var(--teal-light)' }};">
+          <i class="fa-solid fa-{{ 'receipt' if a.type=='sale' else 'wallet' if a.type=='expense' else 'boxes-stacked' }}"
+             style="font-size:14px;color:{{ 'var(--primary)' if a.type=='sale' else 'var(--red)' if a.type=='expense' else 'var(--teal)' }};"></i>
+        </div>
+        <div>
+          <div class="item-name" style="font-size:13px;">
+            {% if a.type=='sale' %}Sale recorded{% elif a.type=='expense' %}{{ a.note }}{% else %}Restocked: {{ a.note }}{% endif %}
+          </div>
+          <div class="item-sub">
+            {% if a.type=='sale' %}{{ a.item_count or 0 }} item{{ 's' if (a.item_count or 0) != 1 }} · {{ a.actor or '' }}
+            {% elif a.type=='expense' %}{{ a.category }}
+            {% else %}{{ a.amount }} units added{% endif %}
+            · {{ a.created_at[:16] }}
+          </div>
+        </div>
+      </div>
+      {% if a.type=='sale' %}
+      <div style="font-size:14px;font-weight:700;color:var(--primary);">₦{{ "{:,.0f}".format(a.amount) }}</div>
+      {% elif a.type=='expense' %}
+      <div style="font-size:14px;font-weight:700;color:var(--red);">-₦{{ "{:,.0f}".format(a.amount) }}</div>
+      {% endif %}
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  <!-- Margin Alerts -->
+  {% if session.role == 'owner' %}
+  {% set low_margin_items = velocity | selectattr('low_margin') | list %}
+  {% if low_margin_items %}
+  <div class="card">
+    <div class="card-header">
+      <div class="card-title"><i class="fa-solid fa-percent" style="color:var(--amber);margin-right:6px;font-size:12px;"></i>Margin Alerts</div>
+      <span class="badge badge-amber">{{ low_margin_items|length }}</span>
+    </div>
+    <div style="font-size:12px;color:var(--text-muted);margin-bottom:10px;">Products below 20% profit margin — consider adjusting selling price</div>
+    {% for p in low_margin_items %}
+    <div class="item-row">
+      <div>
+        <div class="item-name">{{ p.name }}</div>
+        <div class="item-sub">Sell: ₦{{ "{:,.0f}".format(p.selling_price) }} · Margin: {{ p.margin }}%</div>
+      </div>
+      <a href="/stock" class="btn btn-xs btn-secondary">Edit Price</a>
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+  {% endif %}
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script>
+const chartData = {{ data.chart_data | tojson }};
+const last14 = [];
+const today = new Date();
+for (let i=13;i>=0;i--) {
+  const d=new Date(today); d.setDate(d.getDate()-i);
+  const key=d.toISOString().split('T')[0];
+  const found=chartData.find(r=>r.day===key);
+  last14.push({day:key,total:found?found.total:0});
+}
+const labels=last14.map(r=>{const d=new Date(r.day);return d.toLocaleDateString('en-NG',{month:'short',day:'numeric'});});
+const values=last14.map(r=>r.total);
+const maxVal=Math.max(...values,1);
+
+new Chart(document.getElementById('salesChart'),{
+  type:'bar',
+  data:{labels,datasets:[{
+    data:values,
+    backgroundColor:values.map((v,i)=>i===values.length-1
+      ?'rgba(21,101,192,0.9)'
+      :`rgba(21,101,192,${0.12+(v/maxVal)*0.55})`),
+    borderRadius:5,borderSkipped:false,borderWidth:0,
+  }]},
+  options:{
+    responsive:true,maintainAspectRatio:false,
+    plugins:{legend:{display:false},tooltip:{
+      backgroundColor:'rgba(26,26,46,0.92)',
+      callbacks:{label:c=>'\u20A6'+c.parsed.y.toLocaleString('en-NG')}
+    }},
+    scales:{
+      x:{grid:{display:false},ticks:{font:{size:10},maxRotation:45,color:'#718096'}},
+      y:{grid:{color:'rgba(0,0,0,0.04)'},ticks:{font:{size:10},color:'#718096',
+        callback:v=>'\u20A6'+(v>=1000?(v/1000).toFixed(0)+'k':v)}}
+    }
+  }
+});
+</script>
+{% endblock %}

@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+{% set active_page = 'expenses' %}
+{% block title %}Expenses — Clinixis{% endblock %}
+{% block content %}
+<div class="page">
+  <div style="padding:14px 0 12px;display:flex;align-items:center;justify-content:space-between;">
+    <div>
+      <div style="font-size:13px;color:var(--text-muted);">Track what you spend</div>
+      <div style="font-size:20px;font-weight:700;">Expenses</div>
+    </div>
+    <button class="btn btn-primary btn-sm" onclick="openModal('add-expense-modal')">
+      <i class="fa-solid fa-plus"></i> Add
+    </button>
+  </div>
+
+  <div class="metrics">
+    <div class="metric-card primary">
+      <div class="metric-label">This Month</div>
+      <div class="metric-value">&#8358;{{ "{:,.0f}".format(month_total) }}</div>
+      <div class="metric-sub">Total expenses</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-label">This Week</div>
+      <div class="metric-value" style="font-size:20px;">&#8358;{{ "{:,.0f}".format(week_total) }}</div>
+      <div class="metric-sub">Total expenses</div>
+    </div>
+  </div>
+
+  {% if expenses %}
+  <div class="card">
+    <div class="section-header">
+      <div class="section-title">Recent Expenses</div>
+    </div>
+    {% for e in expenses %}
+    <div class="item-row">
+      <div>
+        <div class="item-name">{{ e['description'] }}</div>
+        <div class="item-sub">
+          <span class="badge badge-blue">{{ e['category'] }}</span>
+          &nbsp;{{ e['created_at'][:10] }}
+        </div>
+      </div>
+      <div style="font-size:15px;font-weight:700;color:var(--danger);">
+        -&#8358;{{ "{:,.0f}".format(e['amount']) }}
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div style="text-align:center;padding:40px 16px;color:var(--text-muted);">
+    <i class="fa-solid fa-wallet" style="font-size:40px;margin-bottom:12px;display:block;opacity:0.3;"></i>
+    No expenses recorded yet.
+  </div>
+  {% endif %}
+</div>
+
+<div class="modal-overlay" id="add-expense-modal" onclick="if(event.target===this)closeModal('add-expense-modal')">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">Record Expense</div>
+    <form method="POST" action="/expenses/add">
+      <div class="form-group">
+        <label class="form-label">Category</label>
+        <select class="form-control" name="category">
+          <option>Rent</option>
+          <option>Electricity</option>
+          <option>Transport</option>
+          <option>Staff Salary</option>
+          <option>Restock</option>
+          <option>Equipment</option>
+          <option>Miscellaneous</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Description</label>
+        <input class="form-control" type="text" name="description" placeholder="e.g. Monthly shop rent" required>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Amount (&#8358;)</label>
+        <input class="form-control" type="number" name="amount" placeholder="0" min="0" step="0.01" required>
+      </div>
+      <button class="btn btn-primary btn-full" type="submit">Save Expense</button>
+      <button type="button" class="btn btn-secondary btn-full" style="margin-top:8px;" onclick="closeModal('add-expense-modal')">Cancel</button>
+    </form>
+  </div>
+</div>
+{% endblock %}

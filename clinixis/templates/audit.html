@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% set active_page = 'audit' %}
+{% block title %}Audit Log — Clinixis{% endblock %}
+{% block content %}
+<div class="page">
+  <div style="padding:14px 0 12px;">
+    <div style="font-size:13px;color:var(--text-muted);">Full activity history</div>
+    <div style="font-size:20px;font-weight:700;">Audit Log</div>
+  </div>
+
+  <div class="alert alert-info" style="margin-bottom:14px;">
+    <i class="fa-solid fa-shield-halved"></i>
+    Every sale, price change, stock edit, and login is recorded here. Only you can see this.
+  </div>
+
+  {% if logs %}
+  <div class="card">
+    {% for log in logs %}
+    <div class="item-row">
+      <div style="flex:1;min-width:0;">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:2px;">
+          <span class="badge
+            {% if 'SALE' in log.action %}badge-green
+            {% elif 'PRICE' in log.action or 'VOID' in log.action %}badge-red
+            {% elif 'STOCK' in log.action or 'PRODUCT' in log.action %}badge-blue
+            {% elif 'STAFF' in log.action %}badge-orange
+            {% else %}badge-green{% endif %}">
+            {{ log.action.replace('_',' ') }}
+          </span>
+          <span style="font-size:11px;color:var(--text-muted);">{{ log.user_type }}</span>
+        </div>
+        <div style="font-size:13px;color:var(--text-muted);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
+          {{ log.details or '—' }}
+        </div>
+        <div style="font-size:11px;color:var(--text-muted);margin-top:3px;">
+          <i class="fa-regular fa-clock"></i> {{ log.created_at[:16] }}
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div style="text-align:center;padding:40px 16px;color:var(--text-muted);">
+    <i class="fa-solid fa-shield-halved" style="font-size:40px;margin-bottom:12px;display:block;opacity:0.3;"></i>
+    No activity recorded yet.
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,89 @@
+{% extends "base.html" %}
+{% set active_page = 'staff' %}
+{% block title %}Staff — Clinixis{% endblock %}
+{% block content %}
+<div class="page">
+  <div style="padding:14px 0 12px;display:flex;align-items:center;justify-content:space-between;">
+    <div>
+      <div style="font-size:13px;color:var(--text-muted);">Manage your team</div>
+      <div style="font-size:20px;font-weight:700;">Staff</div>
+    </div>
+    <button class="btn btn-primary btn-sm" onclick="openModal('add-staff-modal')">
+      <i class="fa-solid fa-plus"></i> Add Staff
+    </button>
+  </div>
+
+  <div class="alert alert-info" style="margin-bottom:14px;">
+    <i class="fa-solid fa-circle-info"></i>
+    <strong> Staff accounts</strong> can record sales and view stock. Only owners can see expenses, reports, and edit prices.
+  </div>
+
+  {% if staff %}
+  <div class="card">
+    {% for s in staff %}
+    <div class="item-row">
+      <div style="display:flex;align-items:center;gap:12px;">
+        <div style="width:40px;height:40px;border-radius:50%;background:var(--blue-light);display:flex;align-items:center;justify-content:center;color:var(--blue);font-weight:700;font-size:16px;flex-shrink:0;">
+          {{ s.name[0].upper() }}
+        </div>
+        <div>
+          <div class="item-name">{{ s.name }}</div>
+          <div class="item-sub">{{ s.email }}</div>
+          <div style="margin-top:3px;">
+            <span class="badge {% if s.role == 'owner' %}badge-blue{% else %}badge-green{% endif %}">{{ s.role }}</span>
+            {% if not s.is_active %}<span class="badge badge-red" style="margin-left:4px;">Inactive</span>{% endif %}
+          </div>
+        </div>
+      </div>
+      <form method="POST" action="/staff/toggle/{{ s.id }}">
+        <button type="submit" class="btn btn-sm {% if s.is_active %}btn-danger{% else %}btn-secondary{% endif %}">
+          {{ 'Deactivate' if s.is_active else 'Activate' }}
+        </button>
+      </form>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div style="text-align:center;padding:40px 16px;color:var(--text-muted);">
+    <i class="fa-solid fa-users" style="font-size:40px;margin-bottom:12px;display:block;opacity:0.3;"></i>
+    No staff yet. Add your first team member.
+  </div>
+  {% endif %}
+</div>
+
+<div class="modal-overlay" id="add-staff-modal" onclick="if(event.target===this)closeModal('add-staff-modal')">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">Add Staff Member</div>
+    <form method="POST" action="/staff/add">
+      <div class="form-group">
+        <label class="form-label">Full name</label>
+        <input class="form-control" type="text" name="name" placeholder="e.g. Emeka Obi" required>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Email</label>
+          <input class="form-control" type="email" name="email" placeholder="staff@email.com" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Phone</label>
+          <input class="form-control" type="tel" name="phone" placeholder="080...">
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Role</label>
+        <select class="form-control" name="role">
+          <option value="staff">Staff — Sales & Stock only</option>
+          <option value="owner">Owner — Full access</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Password</label>
+        <input class="form-control" type="password" name="password" placeholder="Set a password for them" required minlength="6">
+      </div>
+      <button class="btn btn-primary btn-full" type="submit">Add Staff Member</button>
+      <button type="button" class="btn btn-secondary btn-full" style="margin-top:8px;" onclick="closeModal('add-staff-modal')">Cancel</button>
+    </form>
+  </div>
+</div>
+{% endblock %}
