@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>{% block title %}Clinixis{% endblock %}</title>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 <style>
@@ -30,37 +30,36 @@
     --bottom-h: 64px;
     --radius-sm: 8px;
     --radius: 12px;
-    --radius-lg: 16px;
-    --shadow-sm: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
-    --shadow: 0 4px 6px rgba(0,0,0,0.05), 0 1px 3px rgba(0,0,0,0.06);
-    --shadow-lg: 0 10px 15px rgba(0,0,0,0.07), 0 4px 6px rgba(0,0,0,0.05);
+    --shadow-sm: 0 1px 3px rgba(0,0,0,0.06);
+    --shadow: 0 4px 6px rgba(0,0,0,0.05);
   }
 
-  /* ── SCROLL FIX ── */
-  html {
-    overscroll-behavior: none;
-    scroll-behavior: smooth;
+  html, body {
+    margin: 0; padding: 0;
     height: 100%;
+    overflow: hidden; /* prevent body scroll — only .content scrolls */
   }
+
   * { box-sizing: border-box; margin: 0; padding: 0; }
+
   body {
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Inter', sans-serif;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
     background: var(--bg);
     color: var(--text);
     font-size: 15px;
     line-height: 1.5;
     -webkit-font-smoothing: antialiased;
-    overscroll-behavior-y: none;
-    height: 100%;
-    overflow: hidden;
   }
 
   /* ── TOP NAV ── */
   .nav {
-    position: fixed; top: 0; left: 0; right: 0; height: var(--nav-h);
-    background: #ffffff; border-bottom: 1px solid var(--border);
+    position: fixed; top: 0; left: 0; right: 0;
+    height: var(--nav-h);
+    background: #ffffff;
+    border-bottom: 1px solid var(--border);
     display: flex; align-items: center; justify-content: space-between;
-    padding: 0 20px; z-index: 100; box-shadow: var(--shadow-sm);
+    padding: 0 20px; z-index: 100;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.06);
   }
   .nav-brand { display: flex; align-items: center; gap: 10px; }
   .nav-brand-icon {
@@ -81,22 +80,23 @@
   .nav-logout {
     font-size: 12px; color: var(--text-muted); text-decoration: none;
     padding: 6px 12px; border: 1px solid var(--border); border-radius: var(--radius-sm);
-    transition: all .15s;
   }
-  .nav-logout:hover { background: var(--bg); color: var(--text); }
 
   /* ── BOTTOM NAV ── */
   .bottom-nav {
-    position: fixed; bottom: 0; left: 0; right: 0; height: var(--bottom-h);
-    background: #ffffff; border-top: 1px solid var(--border);
-    display: flex; z-index: 100; box-shadow: 0 -4px 12px rgba(0,0,0,0.05);
-    touch-action: none;
+    position: fixed; bottom: 0; left: 0; right: 0;
+    height: var(--bottom-h);
+    background: #ffffff;
+    border-top: 1px solid var(--border);
+    display: flex; z-index: 100;
+    box-shadow: 0 -2px 8px rgba(0,0,0,0.05);
   }
   .bnav-item {
-    flex: 1; display: flex; flex-direction: column; align-items: center;
-    justify-content: center; gap: 3px; text-decoration: none;
+    flex: 1; display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    gap: 3px; text-decoration: none;
     color: var(--text-muted); font-size: 10px; font-weight: 600;
-    letter-spacing: 0.3px; transition: color .15s; position: relative;
+    letter-spacing: 0.3px; position: relative;
     text-transform: uppercase;
   }
   .bnav-item.active { color: var(--primary); }
@@ -106,28 +106,34 @@
   }
   .bnav-item i { font-size: 19px; }
 
-  /* ── CONTENT SCROLL FIX ── */
+  /* ── THE KEY FIX: only .content scrolls, nothing else ── */
   .content {
     position: fixed;
     top: var(--nav-h);
     left: 0;
     right: 0;
     bottom: var(--bottom-h);
-    overflow-y: auto;
+    overflow-y: scroll;
+    overflow-x: hidden;
     -webkit-overflow-scrolling: touch;
-    overscroll-behavior: contain;
+    /* Prevent scroll chaining to body */
+    overscroll-behavior-y: contain;
   }
-  .page { padding: 20px 16px; max-width: 540px; margin: 0 auto; padding-bottom: 24px; }
+
+  .page {
+    padding: 20px 16px 40px;
+    max-width: 540px;
+    margin: 0 auto;
+    /* Fixed min-height so content doesn't collapse and cause reflow */
+    min-height: calc(100vh - var(--nav-h) - var(--bottom-h));
+  }
+
   .page-header { margin-bottom: 20px; }
   .page-label { font-size: 12px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 4px; }
   .page-title { font-size: 24px; font-weight: 800; color: var(--text); letter-spacing: -0.5px; }
 
   /* ── CARDS ── */
-  .card {
-    background: var(--bg-card); border-radius: var(--radius);
-    border: 1px solid var(--border); padding: 18px;
-    box-shadow: var(--shadow-sm);
-  }
+  .card { background: var(--bg-card); border-radius: var(--radius); border: 1px solid var(--border); padding: 18px; box-shadow: var(--shadow-sm); }
   .card + .card { margin-top: 12px; }
   .card-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
   .card-title { font-size: 13px; font-weight: 700; color: var(--text); }
@@ -135,14 +141,8 @@
 
   /* ── METRIC CARDS ── */
   .metrics-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px; }
-  .metric-card {
-    background: var(--bg-card); border-radius: var(--radius);
-    border: 1px solid var(--border); padding: 16px;
-    box-shadow: var(--shadow-sm); position: relative; overflow: hidden;
-  }
-  .metric-card::after {
-    content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
-  }
+  .metric-card { background: var(--bg-card); border-radius: var(--radius); border: 1px solid var(--border); padding: 16px; box-shadow: var(--shadow-sm); position: relative; overflow: hidden; }
+  .metric-card::after { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; }
   .metric-card.blue::after { background: linear-gradient(90deg, var(--primary), var(--primary-mid)); }
   .metric-card.teal::after { background: linear-gradient(90deg, var(--teal), #26a69a); }
   .metric-card.green::after { background: linear-gradient(90deg, var(--green), #43a047); }
@@ -170,31 +170,20 @@
   .badge-teal { background: var(--teal-light); color: var(--teal); }
 
   /* ── BUTTONS ── */
-  .btn {
-    display: inline-flex; align-items: center; justify-content: center; gap: 7px;
-    padding: 11px 20px; border-radius: var(--radius-sm); font-size: 14px;
-    font-weight: 600; cursor: pointer; border: none; transition: all .15s;
-    text-decoration: none; letter-spacing: 0.1px;
-  }
-  .btn-primary { background: var(--primary); color: white; box-shadow: 0 2px 4px rgba(21,101,192,0.3); }
+  .btn { display: inline-flex; align-items: center; justify-content: center; gap: 7px; padding: 11px 20px; border-radius: var(--radius-sm); font-size: 14px; font-weight: 600; cursor: pointer; border: none; transition: all .15s; text-decoration: none; }
+  .btn-primary { background: var(--primary); color: white; }
   .btn-primary:hover { background: var(--primary-dark); }
   .btn-secondary { background: var(--bg); color: var(--text); border: 1px solid var(--border); }
-  .btn-secondary:hover { background: var(--border); }
-  .btn-teal { background: var(--teal); color: white; }
   .btn-danger { background: var(--red-light); color: var(--red); border: 1px solid #ffcdd2; }
   .btn-full { width: 100%; }
-  .btn-sm { padding: 7px 14px; font-size: 13px; border-radius: var(--radius-sm); }
+  .btn-sm { padding: 7px 14px; font-size: 13px; }
   .btn-xs { padding: 5px 10px; font-size: 12px; border-radius: 6px; }
 
   /* ── FORMS ── */
   .form-group { margin-bottom: 14px; }
   .form-label { display: block; font-size: 12px; font-weight: 700; color: var(--text-secondary); margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.4px; }
-  .form-control {
-    width: 100%; padding: 11px 14px; border: 1.5px solid var(--border);
-    border-radius: var(--radius-sm); font-size: 15px; background: var(--bg-card);
-    color: var(--text); transition: all .15s;
-  }
-  .form-control:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(21,101,192,0.1); background: white; }
+  .form-control { width: 100%; padding: 11px 14px; border: 1.5px solid var(--border); border-radius: var(--radius-sm); font-size: 15px; background: var(--bg-card); color: var(--text); transition: all .15s; }
+  .form-control:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(21,101,192,0.1); }
   .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
   .form-hint { font-size: 11px; color: var(--text-muted); margin-top: 4px; }
 
@@ -219,44 +208,20 @@
   .alert-teal { background: var(--teal-light); color: var(--teal); border: 1px solid #b2dfdb; }
 
   /* ── MODALS ── */
-  .modal-overlay {
-    position: fixed; inset: 0; background: rgba(10,20,40,0.45);
-    z-index: 200; display: flex; align-items: flex-end;
-    opacity: 0; pointer-events: none; transition: opacity .2s;
-    backdrop-filter: blur(2px);
-  }
+  .modal-overlay { position: fixed; inset: 0; background: rgba(10,20,40,0.45); z-index: 200; display: flex; align-items: flex-end; opacity: 0; pointer-events: none; transition: opacity .2s; }
   .modal-overlay.open { opacity: 1; pointer-events: all; }
-  .modal {
-    background: var(--bg-card); border-radius: 20px 20px 0 0;
-    padding: 8px 20px 36px; width: 100%; max-height: 92vh; overflow-y: auto;
-    -webkit-overflow-scrolling: touch;
-    transform: translateY(100%); transition: transform .28s cubic-bezier(0.32, 0.72, 0, 1);
-  }
+  .modal { background: var(--bg-card); border-radius: 20px 20px 0 0; padding: 8px 20px 36px; width: 100%; max-height: 92vh; overflow-y: auto; -webkit-overflow-scrolling: touch; transform: translateY(100%); transition: transform .28s cubic-bezier(0.32, 0.72, 0, 1); }
   .modal-overlay.open .modal { transform: translateY(0); }
   .modal-handle { width: 40px; height: 4px; background: var(--border-strong); border-radius: 2px; margin: 12px auto 20px; }
-  .modal-title { font-size: 18px; font-weight: 800; margin-bottom: 18px; color: var(--text); letter-spacing: -0.3px; }
+  .modal-title { font-size: 18px; font-weight: 800; margin-bottom: 18px; color: var(--text); }
 
   /* ── PILL TABS ── */
   .pill-tabs { display: flex; gap: 6px; margin-bottom: 16px; overflow-x: auto; padding-bottom: 2px; -webkit-overflow-scrolling: touch; }
-  .pill-tab {
-    padding: 7px 16px; border-radius: 20px; font-size: 12px; font-weight: 700;
-    cursor: pointer; border: 1.5px solid var(--border); background: var(--bg-card);
-    color: var(--text-muted); white-space: nowrap; transition: all .15s;
-    text-transform: uppercase; letter-spacing: 0.4px;
-  }
+  .pill-tab { padding: 7px 16px; border-radius: 20px; font-size: 12px; font-weight: 700; cursor: pointer; border: 1.5px solid var(--border); background: var(--bg-card); color: var(--text-muted); white-space: nowrap; transition: all .15s; text-transform: uppercase; letter-spacing: 0.4px; }
   .pill-tab.active { background: var(--primary); color: white; border-color: var(--primary); }
 
   /* ── INSIGHT CARDS ── */
-  .insight-card {
-    background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary) 100%);
-    border-radius: var(--radius); padding: 18px; color: white; margin-bottom: 12px;
-    position: relative; overflow: hidden;
-  }
-  .insight-card::before {
-    content: ''; position: absolute; top: -30px; right: -30px;
-    width: 120px; height: 120px; border-radius: 50%;
-    background: rgba(255,255,255,0.06);
-  }
+  .insight-card { background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary) 100%); border-radius: var(--radius); padding: 18px; color: white; margin-bottom: 12px; position: relative; overflow: hidden; }
   .insight-card.teal { background: linear-gradient(135deg, #00695c, var(--teal)); }
   .insight-card.amber { background: linear-gradient(135deg, #bf360c, var(--amber)); }
   .insight-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.6px; opacity: 0.8; margin-bottom: 4px; }
@@ -265,32 +230,21 @@
 
   /* ── VELOCITY BARS ── */
   .velocity-bar { height: 4px; background: var(--border); border-radius: 2px; margin-top: 6px; overflow: hidden; }
-  .velocity-fill { height: 100%; border-radius: 2px; transition: width .6s ease; }
+  .velocity-fill { height: 100%; border-radius: 2px; }
   .velocity-fill.safe { background: var(--green); }
   .velocity-fill.warn { background: var(--amber); }
   .velocity-fill.danger { background: var(--red); }
 
   /* ── TOAST ── */
-  .toast {
-    position: fixed; bottom: 80px; left: 50%;
-    transform: translateX(-50%) translateY(20px);
-    background: var(--text); color: white; padding: 11px 22px;
-    border-radius: 24px; font-size: 13px; font-weight: 600;
-    z-index: 999; opacity: 0; transition: all .25s;
-    pointer-events: none; white-space: nowrap;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
-  }
+  .toast { position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%) translateY(20px); background: var(--text); color: white; padding: 11px 22px; border-radius: 24px; font-size: 13px; font-weight: 600; z-index: 999; opacity: 0; transition: all .25s; pointer-events: none; white-space: nowrap; }
   .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
   .toast.success { background: var(--green); }
   .toast.error { background: var(--red); }
 
   /* ── MISC ── */
-  .divider { height: 1px; background: var(--border); margin: 16px 0; }
   .empty-state { text-align: center; padding: 48px 20px; color: var(--text-muted); }
   .empty-state i { font-size: 48px; opacity: 0.2; display: block; margin-bottom: 14px; }
   .empty-state p { font-size: 14px; line-height: 1.6; }
-  .skeleton { background: linear-gradient(90deg, #f0f4f8 25%, #e8edf2 50%, #f0f4f8 75%); background-size: 200% 100%; animation: shimmer 1.5s infinite; border-radius: 6px; }
-  @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
 </style>
 </head>
 <body>
@@ -328,7 +282,9 @@
 </nav>
 {% endif %}
 
-<div class="content">{% block content %}{% endblock %}</div>
+<div class="content" id="main-content">
+  {% block content %}{% endblock %}
+</div>
 <div class="toast" id="toast"></div>
 
 <script>
@@ -338,30 +294,34 @@ function showToast(msg, type='', duration=2800) {
   t.className = 'toast show' + (type ? ' ' + type : '');
   setTimeout(() => t.className = 'toast', duration);
 }
-function openModal(id) {
-  document.getElementById(id).classList.add('open');
-}
-function closeModal(id) {
-  document.getElementById(id).classList.remove('open');
-}
-// Animated counters
+function openModal(id) { document.getElementById(id).classList.add('open'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
+// Counter animation — runs ONCE, does NOT cause scroll reflow
 function animateCounters() {
+  const content = document.getElementById('main-content');
+  const scrollPos = content ? content.scrollTop : 0;
   document.querySelectorAll('[data-count]').forEach(el => {
     const target = parseFloat(el.dataset.count);
     const prefix = el.dataset.prefix || '';
-    const duration = 800;
+    const duration = 600;
     const start = performance.now();
     function update(now) {
       const progress = Math.min((now - start) / duration, 1);
       const ease = 1 - Math.pow(1 - progress, 3);
-      const value = target * ease;
-      el.textContent = prefix + value.toLocaleString('en-NG', {maximumFractionDigits: 0});
-      if (progress < 1) requestAnimationFrame(update);
+      el.textContent = prefix + (target * ease).toLocaleString('en-NG', {maximumFractionDigits: 0});
+      if (progress < 1) {
+        requestAnimationFrame(update);
+      }
     }
     requestAnimationFrame(update);
   });
+  // Restore scroll position after animation starts
+  if (content) content.scrollTop = scrollPos;
 }
-document.addEventListener('DOMContentLoaded', animateCounters);
+
+// Run counters only after full page load — not during render
+window.addEventListener('load', animateCounters);
 </script>
 {% block scripts %}{% endblock %}
 </body>
