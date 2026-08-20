@@ -357,9 +357,11 @@ def export_sales():
 @app.route('/reports/expiry-digest')
 @owner_required
 def expiry_digest_preview():
-    digest = get_expiry_digest(session['pharmacy_id'])
+    try:
+        digest = get_expiry_digest(session['pharmacy_id'])
+    except Exception:
+        digest = {'items': [], 'total_risk': 0, 'pharmacy': {'name': session['pharmacy_name']}}
     return render_template('expiry_digest.html', digest=digest, preview=True)
-
 # ── Staff ─────────────────────────────────────────────────────
 @app.route('/staff')
 @owner_required
