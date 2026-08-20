@@ -8,7 +8,6 @@
     <div class="page-title">Reports</div>
   </div>
 
-  <!-- Summary Cards -->
   <div class="metrics-grid">
     <div class="metric-card blue">
       <div class="metric-icon blue"><i class="fa-solid fa-naira-sign"></i></div>
@@ -24,7 +23,6 @@
     </div>
   </div>
 
-  <!-- Net Profit -->
   <div class="card" style="margin-bottom:14px;border-left:3px solid {{ 'var(--green)' if month_profit >= 0 else 'var(--red)' }};">
     <div class="metric-label">Net Profit This Month</div>
     <div style="font-size:28px;font-weight:800;color:{{ 'var(--green)' if month_profit >= 0 else 'var(--red)' }};margin:6px 0;">
@@ -33,17 +31,15 @@
     <div style="font-size:13px;color:var(--text-muted);">Revenue minus all recorded expenses</div>
   </div>
 
-  <!-- Sales Chart — fixed height wrapper prevents resize scroll jump -->
   <div class="card" style="margin-bottom:14px;">
     <div class="card-header">
       <div class="card-title">Daily Sales — This Month</div>
     </div>
     <div style="position:relative;width:100%;height:180px;">
-      <canvas id="reportChart" style="position:absolute;top:0;left:0;width:100%;height:100%;"></canvas>
+      <canvas id="reportChart" width="500" height="180" style="width:100%;height:180px;display:block;"></canvas>
     </div>
   </div>
 
-  <!-- Sales by category -->
   {% if category_breakdown %}
   <div class="card" style="margin-bottom:14px;">
     <div class="card-header">
@@ -61,49 +57,24 @@
   </div>
   {% endif %}
 
-  <!-- Expiry risk -->
-  {% if digest and digest.items %}
-  <div class="card" style="margin-bottom:14px;border-left:3px solid var(--red);">
-    <div class="card-header">
-      <div class="card-title"><i class="fa-solid fa-triangle-exclamation" style="color:var(--red);margin-right:6px;"></i>Expiry Risk</div>
-      <span class="badge badge-red">&#8358;{{ "{:,.0f}".format(digest.total_risk) }}</span>
-    </div>
-    <div style="font-size:12px;color:var(--text-muted);margin-bottom:10px;">Stock value at risk of expiring within 30 days</div>
-    {% for item in digest.items[:5] %}
-    <div class="item-row">
-      <div>
-        <div class="item-name">{{ item.product_name }}</div>
-        <div class="item-sub">{{ item.quantity_remaining }} units · exp {{ item.expiry_date }} · {{ item.days_left }}d left</div>
-      </div>
-      <div style="font-size:13px;font-weight:700;color:var(--red);">&#8358;{{ "{:,.0f}".format(item.risk_exposure) }}</div>
-    </div>
-    {% endfor %}
-    <a href="/reports/expiry-digest" style="display:block;margin-top:10px;font-size:13px;font-weight:700;color:var(--primary);text-decoration:none;">
-      View full digest →
-    </a>
-  </div>
-  {% endif %}
-
-  <!-- Export -->
   <div class="card" style="margin-bottom:14px;">
     <div class="card-header">
       <div class="card-title">Export Data</div>
     </div>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:14px;">
-      Download your complete sales history as a CSV file for your accountant or records.
+      Download your complete sales history as a CSV file.
     </p>
     <a href="/reports/export" class="btn btn-primary btn-full">
       <i class="fa-solid fa-download"></i> Download Sales CSV
     </a>
   </div>
 
-  <!-- Expiry digest preview link -->
   <div class="card">
     <div class="card-header">
       <div class="card-title">Weekly Expiry Digest</div>
     </div>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:14px;">
-      Preview the email report showing all stock at risk of expiring and your financial exposure.
+      Preview the report showing all stock at risk of expiring and your financial exposure.
     </p>
     <a href="/reports/expiry-digest" class="btn btn-secondary btn-full">
       <i class="fa-solid fa-envelope"></i> Preview Expiry Digest
@@ -116,57 +87,33 @@
 {% block scripts %}
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
 <script>
-// Wait for full page load before rendering chart
-// This prevents the canvas resize from triggering a scroll reset
 window.addEventListener('load', function() {
-  const dailyData = {{ daily_data | tojson }};
-  const labels = dailyData.map(r => r.day.slice(5));
-  const values = dailyData.map(r => r.total);
-  const maxVal = Math.max(...values, 1);
-
-  const ctx = document.getElementById('reportChart');
+  var dailyData = {{ daily_data | tojson }};
+  var labels = dailyData.map(function(r) { return r.day.slice(5); });
+  var values = dailyData.map(function(r) { return r.total; });
+  var ctx = document.getElementById('reportChart');
   if (!ctx) return;
-
   new Chart(ctx, {
-    type: 'line',
+    type: 'bar',
     data: {
-      labels,
+      labels: labels,
       datasets: [{
         data: values,
-        borderColor: '#1565c0',
-        backgroundColor: 'rgba(21,101,192,0.08)',
-        fill: true,
-        tension: 0.35,
-        pointRadius: 3,
-        pointBackgroundColor: '#1565c0',
-        borderWidth: 2
+        backgroundColor: 'rgba(21,101,192,0.7)',
+        borderRadius: 4,
+        borderSkipped: false
       }]
     },
     options: {
-      responsive: false,  /* KEY: disables auto-resize that causes scroll jump */
+      responsive: false,
       maintainAspectRatio: false,
-      animation: false,   /* KEY: no animation = no layout reflow during scroll */
-      plugins: {
-        legend: { display: false },
-        tooltip: {
-          callbacks: {
-            label: c => '\u20A6' + c.parsed.y.toLocaleString('en-NG')
-          }
-        }
-      },
+      animation: false,
+      plugins: { legend: { display: false } },
       scales: {
-        x: {
-          grid: { display: false },
-          ticks: { font: { size: 10 }, color: '#718096' }
-        },
-        y: {
-          ticks: {
-            font: { size: 10 },
-            color: '#718096',
-            callback: v => '\u20A6' + (v >= 1000 ? (v/1000).toFixed(0) + 'k' : v)
-          },
-          grid: { color: 'rgba(0,0,0,0.04)' }
-        }
+        x: { grid: { display: false }, ticks: { font: { size: 10 }, color: '#718096' } },
+        y: { ticks: { font: { size: 10 }, color: '#718096',
+          callback: function(v) { return '\u20A6' + (v >= 1000 ? (v/1000).toFixed(0) + 'k' : v); }
+        }, grid: { color: 'rgba(0,0,0,0.04)' } }
       }
     }
   });
