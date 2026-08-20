@@ -1,24 +1,17 @@
-import os
 import sqlite3
+import os
 from datetime import datetime, timedelta
 import random
 
-DATABASE_URL = os.environ.get('DATABASE_URL')
+DB_PATH = os.path.join(os.path.dirname(__file__), 'clinixis.db')
 
 def get_db():
-    if DATABASE_URL:
-        import psycopg2
-        import psycopg2.extras
-        conn = psycopg2.connect(DATABASE_URL)
-        conn.autocommit = False
-        return conn
-    else:
-        DB_PATH = os.path.join(os.path.dirname(__file__), 'clinixis.db')
-        conn = sqlite3.connect(DB_PATH, timeout=30, check_same_thread=False)
-        conn.row_factory = sqlite3.Row
-        conn.execute("PRAGMA journal_mode=WAL")
-        conn.execute("PRAGMA foreign_keys = ON")
-        return conn
+    conn = sqlite3.connect(DB_PATH, timeout=30, check_same_thread=False)
+    conn.row_factory = sqlite3.Row
+    conn.execute("PRAGMA journal_mode=WAL")
+    conn.execute("PRAGMA foreign_keys = ON")
+    conn.execute("PRAGMA busy_timeout = 10000")
+    return conn
 
 def init_db():
     conn = get_db()
